@@ -9,16 +9,17 @@ const path = require("path");
 const app = express();
 
 // ✅ CORS configuration
-app.use(cors({
-  origin: "http://localhost:5173", // your frontend URL
+const corsOptions = {
+  origin: "http://localhost:5173",
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
-}));
+};
 
-// Handle preflight requests
-app.options("*", cors());
-
+// Apply to all routes
+app.use(cors(corsOptions));
 app.use(express.json());
+
+
 
 const PORT = process.env.PORT || 5000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyAX8gSiUt_C7ylqVtzSzGrPrB--v77rxoc";
@@ -65,3 +66,4 @@ app.post("/tts", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+
