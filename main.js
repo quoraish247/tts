@@ -22,7 +22,7 @@ app.use(express.json());
 
 
 const PORT = process.env.PORT || 5000;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyAX8gSiUt_C7ylqVtzSzGrPrB--v77rxoc";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyAX8gSiUt_B--v77rxoc";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // TTS endpoint
@@ -66,4 +66,5 @@ app.post("/tts", async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+
 
