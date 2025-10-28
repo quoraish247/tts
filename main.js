@@ -1,18 +1,30 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const say = require("say");
-const stream = require("stream");
 const fs = require("fs");
+const path = require("path");
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS configuration
+app.use(cors({
+  origin: "http://localhost:5173", // your frontend URL
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+// Handle preflight requests
+app.options("*", cors());
+
 app.use(express.json());
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyAX8gSiUt_C7ylqVtzSzGrPrB--v77rxoc";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
+// TTS endpoint
 app.post("/tts", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt is required" });
@@ -22,22 +34,28 @@ app.post("/tts", async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(prompt);
     let geminiText = result.response.text();
-    geminiText = geminiText.replace(/[^a-zA-Z. ]+/g, "");
+    geminiText = geminiText.replace(/[^a-zA-Z. ]+/g, ""); // clean text
 
-    // 2️⃣ Generate TTS and send as response
-    // say.export only works with files, so workaround: generate temp file and stream then delete
-    const tmpWav = `tmp_${Date.now()}.wav`;
-    const voice = "Microsoft Zira Desktop";
+    // 2️⃣ Generate TTS
+    const tmpWav = path.join(__dirname, `tmp_${Date.now()}.wav`);
+    const voice = "Microsoft Zira Desktop"; // adjust if needed
     const speed = 0.8;
 
     say.export(geminiText, voice, speed, tmpWav, (err) => {
-      if (err) return res.status(500).json({ error: "TTS generation failed", details: err.message });
+      if (err) {
+        console.error("TTS generation failed:", err);
+        return res.status(500).json({ error: "TTS generation failed", details: err.message });
+      }
 
-      // Stream file to client
+      // 3️⃣ Stream file to client
       res.setHeader("Content-Type", "audio/wav");
       const readStream = fs.createReadStream(tmpWav);
       readStream.pipe(res);
-      readStream.on("close", () => fs.unlink(tmpWav, () => {}));
+
+      // Cleanup after streaming
+      readStream.on("close", () => {
+        fs.unlink(tmpWav, () => {});
+      });
     });
 
   } catch (err) {
